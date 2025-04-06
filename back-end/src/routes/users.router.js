@@ -8,19 +8,6 @@ const { validarJWT } = require('../middlewares/validar-jwt');
 const { isDate } = require('../helpers/isDate');
 
 router.post(
-    '/signup', 
-    [ 
-        check('firstName', 'First name is required').not().isEmpty(),
-        check('lastName', 'Last name is required').not().isEmpty(),
-        check('email', 'Email is required').isEmail(),
-        check('password', 'Password must be at least 8 characters long').isLength({min: 8}),
-        check('birthDate', 'Invalid birth date').custom(isDate),
-        check('gender', 'Gender is required').not().isEmpty(),
-        validarCampos
-    ], 
-    usersController.addUser);
-
-router.post(
     '/login', 
     [
         check('email', 'Email is required').isEmail(),
@@ -28,14 +15,6 @@ router.post(
         validarCampos
     ], 
     usersController.login);
-
-router.post(
-    '/forgotpassword', 
-    [
-        check('email', 'Email is required').isEmail(),
-        validarCampos
-    ], 
-    usersController.forgotPassword);
 
 router.get('/renew', validarJWT, usersController.revalidateToken);
 

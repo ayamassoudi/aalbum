@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const HttpError = require('./models/http-error')
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
+
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +15,8 @@ const photosRouter = require("./routes/photos.router");
 const port = process.env.PORT;
 
 const url = process.env.DB_CNN;
+
+app.use('/uploads', express.static('uploads'));
 
 app.use(cors({
   origin: ['http://localhost:3000'],
@@ -54,7 +57,7 @@ app.use((error, req, res, next) =>{
   res.status(error.code || 500);
   res.json({message: error.message || 'An unknown error occurred!!'})
 })
-
+mongoose.set('strictQuery', false);
 mongoose.connect(url).then(()=>{
   console.log("Connected to DB");
   app.listen(port, () => {

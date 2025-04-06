@@ -5,9 +5,9 @@ const { ReasonPhrases, StatusCodes } = require("http-status-codes")
 const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({ 
-    cloud_name: 'dszgkhxlc', 
-    api_key: '553711114944398',
-    api_secret: 'fgsBypUi2uKO96ePBVnJ0Bj_SQU',
+    cloud_name: 'dmoyjwecg', 
+    api_key: '785266648473674',
+    api_secret: 'vqMoLhsgwZiY-0FcnK_4F0caJBM',
     secure: true
   }); 
 

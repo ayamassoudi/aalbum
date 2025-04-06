@@ -5,6 +5,22 @@ const photoSchema = Schema({
     name: {type: String, required: true},
     description: {type: String},
     url: {type: String, required: true},
+    imageFeatures: {
+        dominantColors: [{
+            color: String,
+            percentage: Number
+        }],
+        tags: [String],
+        objects: [{
+            class: String,
+            confidence: Number
+        }],
+        metadata: {
+            width: Number,
+            height: Number,
+            format: String
+        }
+    }
 });
 
 photoSchema.method('toJSON', function () {

@@ -4,67 +4,7 @@ const { generarJWT } = require('../helpers/jwt');
 const User = require("../models/users.model");
 const HttpError = require('../models/http-error')
 const { ReasonPhrases, StatusCodes } = require("http-status-codes")
-const nodemailer = require('nodemailer');
-const sendgridTransport = require('nodemailer-sendgrid-transport');
-const generator = require('generate-password');
 
-const transporter = nodemailer.createTransport(sendgridTransport({
-    auth: {
-        api_key: process.env.SENDGRID_API_KEY
-    }
-}))
-
-const addUser = async (req, res = response, next) => { //add a user
-
-    const {email, password} = req.body;
-
-    try{
-
-        let usuario = await User.findOne({email});
-
-        if (usuario){
-            return res.status(400).json({
-                ok: false,
-                message: 'Email already registered',
-            });
-        }
-
-        usuario = new User(req.body);
-
-        const salt = bcrypt.genSaltSync();
-        usuario.password = bcrypt.hashSync(password, salt);
-
-        await usuario.save();
-
-        const token = await generarJWT(usuario.id, usuario.firstName, usuario.lastName, usuario.email, usuario.birthDate, usuario.gender);
-
-        return res
-        .cookie("token", token, {
-          maxAge: 24*60*60*1000, //24h
-          //sameSite: "none", //forces https
-          httpOnly: process.env.NODE_ENV === "dev",
-          secure: process.env.NODE_ENV === "pro",
-        })
-        .status(200)
-        .json({
-            ok: true,
-            uid: usuario.id,
-            firstName: usuario.firstName,
-            lastName: usuario.lastName,
-            email: usuario.email,
-            birthDate: usuario.birthDate,
-            gender: usuario.gender
-        });
-    
-    }catch(error){
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'Please talk to the admin',
-        });
-    }
-
-}
 
 const login = async (req, res = response, next) => {//login
 
@@ -73,7 +13,7 @@ const login = async (req, res = response, next) => {//login
     try{
 
         const usuario = await User.findOne({email});
-
+        
         if (!usuario){
             return res.status(400).json({
                 ok: false,
@@ -120,69 +60,6 @@ const login = async (req, res = response, next) => {//login
 
 }
 
-const forgotPassword = async (req, res = response, next) => {//forgot password
-
-    const { email } = req.body;
-
-    try{
-
-        const usuario = await User.findOne({email});
-
-        if (!usuario){
-            return res.status(400).json({
-                ok: false,
-                message: 'Invalid email',
-            });
-        }
-
-        const newPassword = generator.generate({
-            length: 16,
-            numbers: true
-        });
-
-        const salt = bcrypt.genSaltSync();
-        const newPass = bcrypt.hashSync(newPassword, salt);
-
-        const user = await User.findByIdAndUpdate(
-            usuario.id,
-            { password: newPass, },
-            {
-                new: true,
-            }
-            ).exec();
-
-        transporter.sendMail({
-            to: email,
-            from: 'jrivasg@est.utn.ac.cr', //Registered mail
-            subject: 'Here is your new password',
-            html: `<h1>You can now login to your account with this password: ${newPassword}</h1>`
-        })
-        .then(response =>{
-            //console.log("response:", response);
-
-            res.status(StatusCodes.OK).json({
-                message: ReasonPhrases.OK,
-                data: "New password sent to email",
-            });
-
-        })
-        .catch(err=>{
-            console.log(err);
-            return res.status(500).json({
-                ok: false,
-                message: 'Error while sending new password',
-            });
-        })
-
-    }catch(error){
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'Please talk to the admin',
-        });
-    }
-
-}
 
 const revalidateToken = async (req, res = response) => {
 
@@ -406,9 +283,7 @@ const deleteUsers = async (req, res = response, next) => { //delete all users
 
 }
 
-exports.addUser = addUser;
 exports.login = login;
-exports.forgotPassword = forgotPassword;
 exports.revalidateToken = revalidateToken;
 exports.logout = logout;
 exports.checkPassword = checkPassword;
