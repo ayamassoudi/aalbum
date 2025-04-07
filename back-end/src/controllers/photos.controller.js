@@ -26,28 +26,46 @@ const getSignature = async (req, res = response, next) => { //get signature
 
 
 
-const addPhoto = async (req, res = response, next) => {
-    try {
-        const { albumId, name, description, url} = req.body;
+const addPhoto = async (req, res = response, next) => {//add a photo
 
-        // Read the uploaded file
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
-        const imageBuffer = Buffer.from(response.data, 'binary');
+    const addedPhoto = new Photo(req.body);
 
-        // Save photo with extracted features
-        const photo = await savePhotoWithFeatures(
-            { albumId, name, description, url: url },
-            imageBuffer
-        );
+    try{
+        
+        const photo = await addedPhoto.save();
 
         res.status(StatusCodes.CREATED).json({
             message: ReasonPhrases.CREATED,
             data: photo
-        });
-    } catch (error) {
-        next(new HttpError(error.message || 'Failed to upload photo', 500));
+        })
+
+    }catch(err){
+        return next(new HttpError(err, 500))
     }
-};
+}
+
+// const addPhoto = async (req, res = response, next) => {
+//     try {
+//         const { albumId, name, description, url} = req.body;
+
+//         // Read the uploaded file
+//         const response = await axios.get(url, { responseType: 'arraybuffer' });
+//         const imageBuffer = Buffer.from(response.data, 'binary');
+
+//         // Save photo with extracted features
+//         const photo = await savePhotoWithFeatures(
+//             { albumId, name, description, url: url },
+//             imageBuffer
+//         );
+
+//         res.status(StatusCodes.CREATED).json({
+//             message: ReasonPhrases.CREATED,
+//             data: photo
+//         });
+//     } catch (error) {
+//         next(new HttpError(error.message || 'Failed to upload photo', 500));
+//     }
+// };
 
 const getPhotos = async (req, res = response, next) => { //find all photos, photos by albumId, photo by id, photos by name (search case insensitive)
 
