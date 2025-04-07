@@ -1,15 +1,18 @@
-const {response} = require('express');
+const { response } = require('express');
 const Photo = require("../models/photos.model");
-const HttpError = require('../models/http-error')
-const { ReasonPhrases, StatusCodes } = require("http-status-codes")
+const HttpError = require('../models/http-error');
+const { ReasonPhrases, StatusCodes } = require("http-status-codes");
 const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
+const { savePhotoWithFeatures } = require('../services/photoFeatureExtractor');
+const axios = require('axios');
 
 cloudinary.config({ 
     cloud_name: 'dmoyjwecg', 
     api_key: '785266648473674',
     api_secret: 'vqMoLhsgwZiY-0FcnK_4F0caJBM',
     secure: true
-  }); 
+}); 
 
 const getSignature = async (req, res = response, next) => { //get signature
 
@@ -21,23 +24,30 @@ const getSignature = async (req, res = response, next) => { //get signature
 
 }
 
-const addPhoto = async (req, res = response, next) => {//add a photo
 
-    const addedPhoto = new Photo(req.body);
 
-    try{
-        
-        const photo = await addedPhoto.save();
+const addPhoto = async (req, res = response, next) => {
+    try {
+        const { albumId, name, description, url} = req.body;
+
+        // Read the uploaded file
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(response.data, 'binary');
+
+        // Save photo with extracted features
+        const photo = await savePhotoWithFeatures(
+            { albumId, name, description, url: url },
+            imageBuffer
+        );
 
         res.status(StatusCodes.CREATED).json({
             message: ReasonPhrases.CREATED,
             data: photo
-        })
-
-    }catch(err){
-        return next(new HttpError(err, 500))
+        });
+    } catch (error) {
+        next(new HttpError(error.message || 'Failed to upload photo', 500));
     }
-}
+};
 
 const getPhotos = async (req, res = response, next) => { //find all photos, photos by albumId, photo by id, photos by name (search case insensitive)
 
