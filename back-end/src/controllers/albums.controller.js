@@ -228,20 +228,20 @@ const deleteAlbum2 = async (req, res = response, next) => { //delete an album by
 }
 
 const deleteAnAlbum = async (req, res = response, next, idParam) => { 
-
     const uid = req.uid;
+    const isAdmin = req.isAdmin;
 
-    try{
-
+    try {
         const alb = await Album.findById(idParam);
 
-        if(!alb){
+        if(!alb) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 message: ReasonPhrases.NOT_FOUND
             });
         }
 
-        if(alb.userId.toString() !== uid){
+        // Allow deletion if user is admin or if it's their own album
+        if(!isAdmin && alb.userId.toString() !== uid) {
             return res.status(401).json({
                 ok: false,
                 message: "You don't have permission to delete this album",
@@ -255,10 +255,9 @@ const deleteAnAlbum = async (req, res = response, next, idParam) => {
             data: "Album deleted",
         });
 
-    }catch(err){
+    } catch(err) {
         return next(new HttpError("Not found", 400))
     }
-    
 }
 
 exports.addAlbum = addAlbum;

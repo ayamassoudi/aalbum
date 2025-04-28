@@ -26,52 +26,56 @@ const getSignature = async (req, res = response, next) => { //get signature
 
 
 
-const addPhoto = async (req, res = response, next) => {//add a photo
+// const addPhoto = async (req, res = response, next) => {//add a photo
 
-    const addedPhoto = new Photo(req.body);
+//     const addedPhoto = new Photo(req.body);
 
-    try{
+//     try{
         
-        const photo = await addedPhoto.save();
-
-        res.status(StatusCodes.CREATED).json({
-            message: ReasonPhrases.CREATED,
-            data: photo
-        })
-
-    }catch(err){
-        return next(new HttpError(err, 500))
-    }
-}
-
-// const addPhoto = async (req, res = response, next) => {
-//     try {
-//         const { albumId, name, description, url} = req.body;
-
-//         // Read the uploaded file
-//         const response = await axios.get(url, { responseType: 'arraybuffer' });
-//         const imageBuffer = Buffer.from(response.data, 'binary');
-
-//         // Save photo with extracted features
-//         const photo = await savePhotoWithFeatures(
-//             { albumId, name, description, url: url },
-//             imageBuffer
-//         );
+//         const photo = await addedPhoto.save();
 
 //         res.status(StatusCodes.CREATED).json({
 //             message: ReasonPhrases.CREATED,
 //             data: photo
-//         });
-//     } catch (error) {
-//         next(new HttpError(error.message || 'Failed to upload photo', 500));
+//         })
+
+//     }catch(err){
+//         return next(new HttpError(err, 500))
 //     }
-// };
+// }
+
+const addPhoto = async (req, res = response, next) => {
+    try {
+        const { albumId, name, description, url} = req.body;
+
+        // Read the uploaded file
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(response.data, 'binary');
+
+        // Save photo with extracted features
+        const photo = await savePhotoWithFeatures(
+            { albumId, name, description, url: url },
+            imageBuffer
+        );
+
+        res.status(StatusCodes.CREATED).json({
+            message: ReasonPhrases.CREATED,
+            data: photo
+        });
+    } catch (error) {
+        next(new HttpError(error.message || 'Failed to upload photo', 500));
+    }
+};
 
 const getPhotos = async (req, res = response, next) => { //find all photos, photos by albumId, photo by id, photos by name (search case insensitive)
 
     const idParam = req.query.id;
     const searchName = req.query.s;
     const albumId = req.query.albumId;
+    const tag = req.query.tag;
+    const width = req.query.width;
+    const height = req.query.height;
+    const color = req.query.color;
 
     const albumIdCount = req.query.albumIdCount;
     const albumName = req.query.albumName;
@@ -94,51 +98,43 @@ const getPhotos = async (req, res = response, next) => { //find all photos, phot
         });
         
 
-    }else if(albumId){
+    } else if(albumId) {
+        let query = { albumId };
+        
+        // Build advanced search query
+        if (searchName) {
+            query.name = { $regex: searchName, $options: "i" };
+        }
+        if (tag) {
+            query['imageFeatures.tags'] = { $regex: tag, $options: "i" };
+        }
+        if (width) {
+            query['imageFeatures.metadata.width'] = parseInt(width);
+        }
+        if (height) {
+            query['imageFeatures.metadata.height'] = parseInt(height);
+        }
+        if (color) {
+            query['imageFeatures.dominantColors.color'] = { $regex: color, $options: "i" };
+        }
 
-        if(searchName){
+        let photos;
+        try {
+            photos = await Photo.find(query);
+        } catch(err) {
+            return next(new HttpError("Not found", 400));
+        }
 
-            let photos;
-    
-            try{
-                photos = await Photo.find({ albumId: albumId, name: { $regex: searchName, $options: "i" } }); //Case insensitive
-            }catch(err){
-                return next(new HttpError("Not found", 400))
-            }
-    
-            if(photos[0]){
-                res.status(StatusCodes.OK).json({
-                    message: ReasonPhrases.OK,
-                    data: photos
-                });
-            }else{
-                res.status(StatusCodes.NOT_FOUND).json({
-                    message: ReasonPhrases.NOT_FOUND
-                });
-            }
-    
-        }else{
-
-            let photos;
-
-            try{
-                photos = await Photo.find({albumId}); 
-            }catch(err){
-                return next(new HttpError("Not found", 400))
-            }
-    
-            if(photos[0]){
-                res.status(StatusCodes.OK).json({
-                    message: ReasonPhrases.OK,
-                    data: photos
-                });
-            }else{
-                res.status(StatusCodes.NOT_FOUND).json({
-                    message: ReasonPhrases.NOT_FOUND
-                });
-            }
-
-        } 
+        if(photos[0]) {
+            res.status(StatusCodes.OK).json({
+                message: ReasonPhrases.OK,
+                data: photos
+            });
+        } else {
+            res.status(StatusCodes.NOT_FOUND).json({
+                message: ReasonPhrases.NOT_FOUND
+            });
+        }
 
     }else if(idParam){
 

@@ -5,9 +5,9 @@ const router = express.Router();
 const albumsController = require('../controllers/albums.controller')
 const { isDate } = require('../helpers/isDate');
 const { validarCampos } = require('../middlewares/validar-campos');
-const { validarJWT } = require('../middlewares/validar-jwt');
+const { validarJWT, isAdmin } = require('../middlewares/validar-jwt');
 
-router.use(validarJWT); //Se aplica este middleware a todas las rutas porque esta antes de todas
+router.use(validarJWT);
 
 router.get("/", albumsController.getAlbums);
 router.get("/:id", albumsController.getAlbum);
@@ -28,15 +28,9 @@ router.put("/:id",
         check('date', 'Invalid date').custom(isDate),
         validarCampos
     ], albumsController.updateAlbum);
-router.put("/", 
-    [
-        check('name', 'Name is required').not().isEmpty(),
-        check('description', 'Description is required').not().isEmpty(),
-        check('date', 'Invalid date').custom(isDate),
-        validarCampos
-    ], albumsController.updateAlbum2);
 
-router.delete("/:id", albumsController.deleteAlbum);
-router.delete("/", albumsController.deleteAlbum2); 
+// Admin-only routes
+router.delete("/:id", [isAdmin], albumsController.deleteAlbum);
+router.delete("/", [isAdmin], albumsController.deleteAlbum2); 
 
 module.exports = router;

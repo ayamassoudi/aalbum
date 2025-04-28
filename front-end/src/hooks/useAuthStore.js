@@ -15,23 +15,19 @@ export const useAuthStore = () => {
     const startLogin = async ({email, password}) => {
         dispatch(onChecking());
         try {
-        
             const {data} = await mainApi.post('/users/login', {email, password});
-
-            // localStorage.setItem('token', data.token);
-            // localStorage.setItem('token-init-date', new Date().getTime());
-
-            console.log(data);
-
-            dispatch(onLogin({firstName: data.firstName, 
-                            lastName: data.lastName, 
-                            email: data.email, 
-                            birthDate: data.birthDate, 
-                            gender: data.gender,
-                            uid: data.uid}));
+            
+            dispatch(onLogin({
+                firstName: data.firstName, 
+                lastName: data.lastName, 
+                email: data.email, 
+                birthDate: data.birthDate, 
+                gender: data.gender,
+                isAdmin: data.isAdmin,
+                uid: data.uid
+            }));
 
         } catch (error) {
-            //console.log(error);
             dispatch(onLogout('Credenciales incorrectas'));
             setTimeout(() => {
                 dispatch(clearErrorMessage());
@@ -42,21 +38,19 @@ export const useAuthStore = () => {
     const startSignUp = async ({firstName, lastName, email, password, birthDate, gender}) => {
         dispatch(onChecking());
         try {
-            
             const {data} = await mainApi.post('/users/signup', {firstName, lastName, email, password, birthDate, gender});
 
-            // localStorage.setItem('token', data.token);
-            // localStorage.setItem('token-init-date', new Date().getTime());
-
-            dispatch(onLogin({firstName: data.firstName, 
+            dispatch(onLogin({
+                firstName: data.firstName, 
                 lastName: data.lastName, 
                 email: data.email, 
                 birthDate: data.birthDate, 
                 gender: data.gender,
-                uid: data.uid}));
+                isAdmin: data.isAdmin,
+                uid: data.uid
+            }));
 
         } catch (error) {
-            //console.log(error);
             dispatch(onLogout(error.response.data?.message || 'Error'));
             setTimeout(() => {
                 dispatch(clearErrorMessage());
@@ -65,35 +59,28 @@ export const useAuthStore = () => {
     }
 
     const checkAuthToken = async() => {
-
-        try { //Si no ha expirado el token, crea otro
-
+        try {
             const {data} = await mainApi.get('/users/renew');
-            //console.log("renewed");
-            console.log(data);
             
-            // localStorage.setItem('token', data.token);
-            // localStorage.setItem('token-init-date', new Date().getTime());
-
-            dispatch(onLogin({firstName: data.firstName, 
+            dispatch(onLogin({
+                firstName: data.firstName, 
                 lastName: data.lastName, 
                 email: data.email, 
                 birthDate: data.birthDate, 
                 gender: data.gender,
-                uid: data.uid}));
+                isAdmin: data.isAdmin,
+                uid: data.uid
+            }));
             
-        } catch (error) { //Si ya expiro el token, cierra sesion
+        } catch (error) {
             dispatch(onLogout());
         }
     }
 
     const startLogout = async () => {
         try { 
-
-            const {data} = await mainApi.get('/users/logout');
-            
+            await mainApi.get('/users/logout');
         } catch (error) { 
-            //console.log(error);
             Swal.fire('Error while logging out', error.response.data?.message, 'error');
         }
         dispatch(onLogoutAlbums());
@@ -103,30 +90,21 @@ export const useAuthStore = () => {
     }
 
     const startUpdatingUser = async(newUser) => {
-
         try {
-
             await mainApi.put(`/users/${user.uid}`, newUser);
             dispatch(onUpdateUser({...newUser, uid: user.uid}));
-            //console.log(newUser);
             Swal.fire('User updated!', 'The user was updated successfully!', 'success');
             return;
-            
         } catch (error) {
-            //console.log(error);
             Swal.fire('Error while updating user', error.response.data?.message, 'error');
         }
-        
     }
 
     const startUpdatingPassword = async(oldPassword, newPassword) => {
-
         try {
-
             try {
                 await mainApi.post(`/users/checkpassword/${user.uid}`, {oldPassword});
             } catch (error) {
-                //console.log(error);
                 Swal.fire('Error while updating user password', error.response.data?.message, 'error');
                 return false;
             }
@@ -134,24 +112,17 @@ export const useAuthStore = () => {
             await mainApi.put(`/users/password/${user.uid}`, {newPassword});
             Swal.fire('User password updated!', 'The password was updated successfully!', 'success');
             return true;
-            
         } catch (error) {
-            //console.log(error);
             Swal.fire('Error while updating user password', error.response.data?.message, 'error');
             return false;
         }
-        
     }
 
     const startForgotPassword = async (email) => {
         try {
-        
             const {data} = await mainApi.post('/users/forgotpassword', {email});
-
             Swal.fire('New password sent!', 'Your new password was sent to your email successfully!', 'success');
-
         } catch (error) {
-            //console.log(error);
             Swal.fire('Error while sending new user password', error.response.data?.message, 'error');
         }
     }
@@ -168,5 +139,4 @@ export const useAuthStore = () => {
         startUpdatingPassword,
         startForgotPassword
     }
-
 }

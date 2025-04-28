@@ -5,76 +5,96 @@ import { useUiStore } from "../../hooks/useUiStore";
 import { AlbumModal } from "../components/AlbumModal";
 import { AlbumTable } from "../components/AlbumsTable";
 import { SearchBar } from "../components/SearchBar";
-import { Button } from "flowbite-react/lib/cjs/index.js";
+import { Button, Card } from "flowbite-react/lib/cjs/index.js";
+import { Add, Collections } from "@mui/icons-material";
+import { Box, Typography } from "@mui/material";
 
 export const AlbumsPage = () => {
-
     const [showNoResults, setNoResults] = useState(false);
-    const {user} = useAuthStore();
-    const {albums, setActiveAlbum, startLoadingAlbums} = useAlbumStore();
-    const {openModal} = useUiStore();
+    const { user } = useAuthStore();
+    const { albums, setActiveAlbum, startLoadingAlbums } = useAlbumStore();
+    const { openModal } = useUiStore();
 
     useEffect(() => {
         startLoadingAlbums();
-    }, [])
+    }, []);
 
     const onNewAlbum = () => {
-      setActiveAlbum({
-        name: '',
-        description: '',
-        date: new Date(),
-    })
-      openModal();
-    }
+        setActiveAlbum({
+            name: '',
+            description: '',
+            date: new Date(),
+        });
+        openModal();
+    };
 
-  return (
-    <div className="App">
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                    <Typography variant="h4" component="h1" fontWeight="bold" color="primary" gutterBottom>
+                        Your Albums
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Organize and manage your photo collections
+                    </Typography>
+                </Box>
+                <Button
+                    gradientMonochrome="purple"
+                    size="lg"
+                    onClick={onNewAlbum}
+                    className="flex items-center gap-2"
+                >
+                    <Add className="w-5 h-5" />
+                    Create Album
+                </Button>
+            </Box>
 
-      {albums[0] ? (
+            <Card className="mb-6">
+                <div className="p-4">
+                    <SearchBar
+                        id={1}
+                        setNoResults={setNoResults}
+                    />
+                </div>
+            </Card>
 
-        <div className="border-2 rounded-lg mt-4">
+            {showNoResults ? (
+                <Card className="text-center p-8 bg-gray-50">
+                    <Collections className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No albums found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Try adjusting your search terms or create a new album
+                    </Typography>
+                </Card>
+            ) : albums[0] ? (
+                <Card className="overflow-hidden">
+                    <AlbumTable albums={albums} />
+                </Card>
+            ) : (
+                <Card className="text-center p-8 bg-gray-50">
+                    <Collections className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No albums yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Create your first album to start organizing your photos
+                    </Typography>
+                    <Button
+                        gradientMonochrome="purple"
+                        size="lg"
+                        onClick={onNewAlbum}
+                        className="flex items-center gap-2 mx-auto"
+                    >
+                        <Add className="w-5 h-5" />
+                        Create Album
+                    </Button>
+                </Card>
+            )}
 
-          <SearchBar
-            id={1}
-            setNoResults={setNoResults}
-          />
-
-          {showNoResults ? (
-            <p className="px-6 py-2.5 bg-blue-600 text-white font-medium text-x leading-tight ">
-              No results
-            </p>
-          ) : null}
-        
-
-        <div className="flex flex-col items-center">
-          {/* <h1 className="px-6 py-2.5 text-5xl text-center font-bold text-slate-900">
-            Albums
-          </h1> */}
-
-          
-
-          <div className="overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="py-2 inline-block min-w-[75%] sm:px-6 lg:px-8">
-              <div className="overflow-hidden mb-4">
-                <AlbumTable albums={albums} />
-              </div>
-            </div>
-          </div>
+            <AlbumModal />
         </div>
-
-        </div>
-      ) : (
-        <>
-        <div className="flex flex-wrap gap-2 m-3">
-            <Button gradientMonochrome="purple" onClick={() => onNewAlbum()}>
-              New Album
-            </Button>
-          </div>
-          <p>No albums yet :|</p>
-          </>
-        
-      )}
-      <AlbumModal />
-    </div>
-  )
-}
+    );
+};

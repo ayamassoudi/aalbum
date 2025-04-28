@@ -7,12 +7,13 @@ const userSchema = Schema({
     password: {type: String, required: true},
     birthDate: {type: Date, required: true},
     gender: {type: String, required: true},
+    isAdmin: {type: Boolean, default: false}
 });
 
 userSchema.method('toJSON', function () {
-  const {__v, _id, password, ...object} = this.toObject();
-  object.id = _id;
-  return object; 
+    const {__v, _id, ...object} = this.toObject();
+    object.uid = _id;
+    return object; 
 });
 
 module.exports = model('User', userSchema);

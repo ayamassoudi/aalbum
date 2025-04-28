@@ -39,28 +39,15 @@ export const useAlbumStore = () => {
     }
 
     const startDeletingAlbum = async(album) => {
-
         try {
-
-            try {
-
-                const {data} = await mainApi.get(`/photos?albumId=${album.id}`);
-
-                Swal.fire('Error while deleting album', 'This album is not empty, delete its photos first', 'error');
-
-            } catch (error) {
-
-                await mainApi.delete(`/albums/${album.id}`);
-                dispatch(onDeleteAlbum());
-                Swal.fire('Album deleted!', 'The album was deleted successfully!', 'success');
-                
-            }
-
+            await mainApi.delete(`/albums/${album.id}`);
+            dispatch(onDeleteAlbum());
+            Swal.fire('Album deleted!', 'The album was deleted successfully!', 'success');
         } catch (error) {
-            //console.log(error);
-            Swal.fire('Error while deleting album', error.response.data?.message, 'error');
+            console.error('Error deleting album:', error);
+            const errorMessage = error.response?.data?.message || 'Error while deleting album';
+            Swal.fire('Error', errorMessage, 'error');
         }
-        
     }
 
     const startLoadingAlbums = async () => {

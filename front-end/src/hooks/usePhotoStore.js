@@ -1,119 +1,126 @@
-import { useSelector, useDispatch } from "react-redux"
+import { useSelector, useDispatch } from "react-redux";
 import Swal from "sweetalert2";
 import mainApi from "../api/mainApi";
 import { fileUpload } from "../helpers/fileUpload";
-import { deletingPhoto, onAddNewPhoto, onClearPhotos, onDeleteAllPhotosOfAlbum, onDeletePhoto, onLoadPhotos, onSearchPhotos, onSetActivePhoto, onUpdatePhoto, photoSlice, savingNewPhoto } from "../store/app/photoSlice";
-
-
+import { 
+    deletingPhoto, 
+    onAddNewPhoto, 
+    onClearPhotos, 
+    onDeleteAllPhotosOfAlbum, 
+    onDeletePhoto, 
+    onLoadPhotos, 
+    onSearchPhotos, 
+    onSetActivePhoto, 
+    onUpdatePhoto, 
+    savingNewPhoto 
+} from "../store/app/photoSlice";
 
 export const usePhotoStore = () => {
-
     const dispatch = useDispatch();
-  
-    const {photos, activePhoto, isSaving, isDeleting} = useSelector(state => state.photos);
-    const {activeAlbum} = useSelector(state => state.albums);
-    const {user} = useSelector(state => state.auth);
+    const { photos, activePhoto, isSaving, isDeleting } = useSelector(state => state.photos);
+    const { activeAlbum } = useSelector(state => state.albums);
 
     const setActivePhoto = (photo) => {
         dispatch(onSetActivePhoto(photo));
-    }
+    };
 
     const startUploadingFile = async (files = []) => {
+        try {
+            dispatch(savingNewPhoto());
+            const file = files[0];
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                throw new Error('Invalid file type. Please select an image file.');
+            }
 
-        //console.log(files);
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('File too large. Please select an image smaller than 5MB.');
+            }
 
-        dispatch(savingNewPhoto());
-    
-        return await fileUpload(files[0]);
-    
-    }
+            return await fileUpload(file);
+        } catch (error) {
+            throw new Error(error.message || 'Failed to upload file');
+        }
+    };
+
+    const startUploadingFiles = async (files = []) => {
+        try {
+            dispatch(savingNewPhoto());
+            const fileUploadPromises = [];
+            
+            // Validate files
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) {
+                    throw new Error(`Invalid file type: ${file.name}. Please select image files only.`);
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    throw new Error(`File too large: ${file.name}. Please select images smaller than 5MB.`);
+                }
+                fileUploadPromises.push(fileUpload(file));
+            }
+
+            return await Promise.all(fileUploadPromises);
+        } catch (error) {
+            throw new Error(error.message || 'Failed to upload files');
+        }
+    };
 
     const startSavingPhoto = async(photo) => {
-
         try {
-
-            if (photo.id){ //Update
+            if (photo.id) {
                 await mainApi.put(`/photos/${photo.id}`, photo);
                 dispatch(onUpdatePhoto({...photo}));
                 Swal.fire('Photo updated!', 'The photo was updated successfully!', 'success');
                 return;
             }
 
-            //Create
-            if(activeAlbum){
-                photo.albumId = activeAlbum.id;
-            }else{
-                photo.albumId = localStorage.getItem('activeAlbum');
+            const albumId = activeAlbum?.id || localStorage.getItem('activeAlbum');
+            if (!albumId) {
+                throw new Error('No album selected');
             }
-            //console.log(photo);
-            const {data} = await mainApi.post('/photos', photo);
+
+            photo.albumId = albumId;
+            const { data } = await mainApi.post('/photos', photo);
             dispatch(onAddNewPhoto({...photo, id: data.data.id}));
-            Swal.fire('Photo uploaded!', 'The photo was uploaded successfully!', 'success');
-            
+            Swal.fire('Success', 'Photo uploaded successfully!', 'success');
         } catch (error) {
-            //console.log(error);
-            Swal.fire('Error while saving photo', error.response.data?.message, 'error');
+            console.error('Error saving photo:', error);
+            throw error;
         }
-        
-    }
-
-    const startUploadingFiles = async (files = []) => {
-
-        //console.log(files);
-
-        dispatch(savingNewPhoto());
-
-        const fileUploadPromises = [];
-        for (const file of files) {
-            fileUploadPromises.push(fileUpload(file));
-        }
-
-        const photosURLs = await Promise.all(fileUploadPromises);
-    
-        return photosURLs;
-    
-    }
+    };
 
     const startSavingPhotos = async(files = []) => {
-
         try {
-
-            const photosURLs = await startUploadingFiles(files);
-            const newPhotos = [];
-            let albumId = '';
-
-            if(activeAlbum){
-                albumId = activeAlbum.id;
-            }else{
-                albumId = localStorage.getItem('activeAlbum');
+            const albumId = activeAlbum?.id || localStorage.getItem('activeAlbum');
+            if (!albumId) {
+                throw new Error('No album selected');
             }
 
-            let x = 0;
-            let name = '';
-            photosURLs.forEach(url => {
-                x = Math.floor(Math.random() * (Math.floor(9999999999) - Math.ceil(999999999) + 1) + Math.ceil(999999999));
-                name = '' + x;
-                newPhotos.push({albumId, url, name});
-            })
+            const photosURLs = await startUploadingFiles(files);
+            const newPhotos = photosURLs.map(url => ({
+                albumId,
+                url,
+                name: `Photo ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+            }));
 
-            const filePromises = [];
-            newPhotos.forEach(photo => {
-                filePromises.push(mainApi.post('/photos', photo));
-            })
+            const uploadPromises = newPhotos.map(photo => 
+                mainApi.post('/photos', photo)
+            );
 
-            await Promise.all(filePromises);
-            
-            const {data} = await mainApi.get(`/photos?albumId=${albumId}`);
+            await Promise.all(uploadPromises);
+
+            const { data } = await mainApi.get(`/photos?albumId=${albumId}`);
             dispatch(onSearchPhotos(data.data));
 
-            Swal.fire('Photos uploaded!', 'The photos were uploaded successfully!', 'success');
-            
+            Swal.fire('Success', 'Photos uploaded successfully!', 'success');
         } catch (error) {
-            //console.log(error);
-            Swal.fire('Error while saving photo', error.response.data?.message, 'error');
+            console.error('Error uploading photos:', error);
+            Swal.fire('Error', error.message || 'Failed to upload photos', 'error');
+            throw error;
         }
-        
-    }
+    };
 
     const startDeletingPhoto = async(photo) => {
 
@@ -214,38 +221,39 @@ export const usePhotoStore = () => {
         }
     }
 
-    const startSearchingPhotos = async (id, value) => {
+    const startSearchingPhotos = async (id, searchParams) => {
         try {
-
-            if (value === "") {
-
+            if (Object.keys(searchParams).length === 0) {
                 const {data} = await mainApi.get(`/photos?albumId=${id}`);
                 dispatch(onSearchPhotos(data.data));
-
-            }else{
-
-                try {
-                    const {data} = await mainApi.get(`/photos?s=${value}&albumId=${id}`);
-
-                    dispatch(onSearchPhotos(data.data));
-                    return false;
-                } catch (error) {
-                    return true;
-                }
-
+                return false;
             }
 
+            // Build query string
+            const queryParams = new URLSearchParams({
+                albumId: id,
+                ...searchParams
+            }).toString();
+
+            try {
+                const {data} = await mainApi.get(`/photos?${queryParams}`);
+                dispatch(onSearchPhotos(data.data));
+                return false;
+            } catch (error) {
+                return true;
+            }
         } catch (error) {
-            //console.log(error);
+            console.error('Error searching photos:', error);
+            return true;
         }
     }
 
     return {
-        photos: photos,
-        isSaving: isSaving,
-        isDeleting: isDeleting,
-        activePhoto: activePhoto,
-        hasPhotoSelected: !!activePhoto, //null = false, object = true
+        photos,
+        isSaving,
+        isDeleting,
+        activePhoto,
+        hasPhotoSelected: !!activePhoto,
         setActivePhoto,
         startUploadingFile,
         startSavingPhoto,
@@ -254,6 +262,5 @@ export const usePhotoStore = () => {
         startSearchingPhotos,
         startDeletingAllPhotosOfAlbum,
         startSavingPhotos,
-    }
-
-}
+    };
+};

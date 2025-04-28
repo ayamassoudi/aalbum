@@ -2,165 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 body {
-  font-family: "Roboto", sans-serif;
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #F8FAFC;
 }
 
-.content {
-  max-width: 80%;
-  margin: 0 auto;
+/* Custom focus outline */
+:focus-visible {
+  outline: 2px solid #1E40AF;
+  outline-offset: 2px;
 }
 
-.overlay {
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 10;
+/* Smooth animations */
+.animate__fadeIn {
+  animation-duration: 0.5s;
 }
 
-
-
-
-
-.box-shadow{
-  box-shadow: 0px 5px 5px rgba(0,0,0,0.2);
+.animate__faster {
+  animation-duration: 0.3s;
 }
 
-
-
-
-
-/* Modal */
-.ReactModalPortal > div{
-  opacity: 0;
+/* Form field enhancements */
+.MuiTextField-root {
+  transition: transform 0.2s ease-in-out;
 }
 
-.ReactModalPortal .ReactModal__Overlay {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  transition: opacity .2s ease-in-out;
-  z-index: 999;
+.MuiTextField-root:focus-within {
+  transform: translateY(-2px);
 }
 
-.modal-fondo {
-  background-color: rgba(0, 0, 0, 0.3);
-  bottom: 0;
-  left: 0;
-  right: 0;
-  top: 0;
-  position: fixed;
+/* Button hover effects */
+.MuiButton-contained {
+  transition: all 0.2s ease-in-out !important;
 }
 
-.ReactModalPortal .ReactModal__Overlay--after-open {
-  opacity: 1;
+.MuiButton-contained:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 64, 175, 0.25) !important;
 }
 
-.ReactModalPortal .ReactModal__Overlay--before-close {
-  opacity: 0;
+.MuiButton-contained:active {
+  transform: translateY(0);
 }
 
-.modal {
-  background: white;
-  border-radius: 5px;
-  color: rgb(51, 51, 51);
-  display: inline;
-  max-height: 95%;
-  max-width: 90%;
-  outline: none;
-  padding: 10px;
+/* Link hover effects */
+a {
+  transition: color 0.2s ease-in-out;
 }
 
-.modal_img {
-  max-height: 70vh;
+/* Paper hover effect */
+.MuiPaper-root {
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 }
 
-
-
-
-
-.thumbnail{
-  aspect-ratio:1;
+.MuiPaper-root:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
 }
 
-
-
-
-
-/* hide scrollbar but allow scrolling */
-#scrollContent {
-  -ms-overflow-style: none; /* for Internet Explorer, Edge */
-  scrollbar-width: none; /* for Firefox */
-  overflow-y: scroll; 
+/* Modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-#scrollContent::-webkit-scrollbar {
-  display: none; /* for Chrome, Safari, and Opera */
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 4px;
 }
 
+::-webkit-scrollbar-thumb {
+  background: #94A3B8;
+  border-radius: 4px;
+}
 
+::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
 
+/* Loading states */
+.MuiCircularProgress-root {
+  animation: fadeIn 0.3s ease-in-out;
+}
 
-
-
-@media only screen and (max-width: 1800px) {
-  #photo_container {
-    width: 25%;
-    /* height: 45vh; */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  /* #photo_title {
-    height: 23%;
-  }*/
-} 
-
-@media only screen and (max-width: 1500px) {
-  #photo_container {
-    width: 25%;
-    /* height: 40vh; */
+  to {
+    opacity: 1;
   }
-  /* #photo_title {
-    height: 25%;
-  } */
 }
 
-@media only screen and (max-width: 1200px) {
-  .content {
-    max-width: 85%;
-  }
-  #photo_container {
-    width: 33.3%;
-    /* height: 42vh; */
-  }
-  /* #photo_title {
-    height: 31%;
-  } */
-}
-
-@media only screen and (max-width: 900px) {
-  .content {
-    max-width: 90%;
-  }
-  #photo_container {
-    width: 33.3%;
-    /* height: 40vh; */
-  }
-  /* #photo_title {
-    height: 31%;
-  } */
-}
-
-@media only screen and (max-width: 600px) {
-  .content {
-    max-width: 95%;
-  }
-  #photo_container {
-    width: 50%;
-    /* height: 40vh; */
-  }
-  /* #photo_title {
-    height: 34%;
-  } */
+/* Input autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

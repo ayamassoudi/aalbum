@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useAuthStore } from '../../hooks/useAuthStore';
 import { useForm } from '../../hooks/useForm';
-import {Link as RouterLink} from 'react-router-dom'
-import { Grid, Typography, TextField, Button, Link, Alert } from "@mui/material"
+import { Link as RouterLink } from 'react-router-dom';
+import { Grid, TextField, Button, Link, Alert, InputAdornment, IconButton, Box, Typography } from "@mui/material";
+import { Visibility, VisibilityOff, Email } from '@mui/icons-material';
 import { AuthLayout } from '../layout/AuthLayout';
 
 const loginFormFields = {
@@ -12,69 +13,141 @@ const loginFormFields = {
 }
 
 export const LoginPage = () => {
-
-    const {startLogin, errorMessage} = useAuthStore();
-
-    const {loginEmail, loginPassword, onInputChange: onLoginInputChange} = useForm(loginFormFields);
+    const [showPassword, setShowPassword] = useState(false);
+    const { startLogin, errorMessage } = useAuthStore();
+    const { loginEmail, loginPassword, onInputChange: onLoginInputChange } = useForm(loginFormFields);
 
     const onSubmit = (e) => {
         e.preventDefault();
-
-        startLogin({email: loginEmail, password: loginPassword});
+        startLogin({ email: loginEmail, password: loginPassword });
     }
 
     useEffect(() => {
-      
         if (errorMessage !== undefined) {
-            Swal.fire('Error en la autenticacion', errorMessage, 'error');
+            Swal.fire('Authentication Error', errorMessage, 'error');
         }
-
-    }, [errorMessage])
-    
+    }, [errorMessage]);
 
     return (
-        <AuthLayout title="Login">
+        <AuthLayout title="">
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <Typography variant="h4" component="h1" fontWeight="bold" color="primary" gutterBottom>
+                    Welcome back
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Sign in to access your photos
+                </Typography>
+            </Box>
 
             <form onSubmit={onSubmit} className="animate__animated animate__fadeIn animate__faster">
-                <Grid container>
-                    <Grid item xs={12} sx={{mt: 2}}>
-                        <TextField variant="filled" label="Email" type="text" placeholder="Your email" fullWidth name="loginEmail" value={loginEmail} onChange={onLoginInputChange} />
-                    </Grid>
-                    <Grid item xs={12} sx={{mt: 2}}>
-                        <TextField variant="filled" label="Password" type="password" placeholder="Your password" fullWidth name="loginPassword" value={loginPassword} onChange={onLoginInputChange}/>
-                    </Grid>
-                    <Grid item xs={12} sx={{mt: 2}} display={!!errorMessage ? '' : 'none'}>
-                        <Alert severity='error'>{errorMessage}</Alert>
-                    </Grid>
-                    <Grid container spacing={2} sx={{mb: 2, mt: 1}}>
-                        <Grid item xs={12} sm={12}>
-                            <Button variant="contained" fullWidth type="submit" >
-                                Login
-                            </Button>
-                        </Grid>
-                    </Grid>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                    <TextField
+                        label="Email"
+                        type="email"
+                        placeholder="your@email.com"
+                        fullWidth
+                        name="loginEmail"
+                        value={loginEmail}
+                        onChange={onLoginInputChange}
+                        variant="outlined"
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Email sx={{ color: 'text.secondary' }} />
+                                </InputAdornment>
+                            ),
+                        }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                            }
+                        }}
+                    />
 
-                    <Grid container spacing={0} sx={{mb: 0, mt: 0}}>
-                        <Grid item xs={8} sm={8}>
-                            <Grid container direction="row" justifyContent="start">
-                                <Link component={RouterLink} color="inherit" to="/auth/forgot-password">
-                                    Forgot your password?
-                                </Link>
-                            </Grid>
-                        </Grid>
-                        <Grid item xs={4} sm={4}>
-                            <Grid container direction="row" justifyContent="end">
-                                <Link component={RouterLink} color="inherit" to="/auth/signup">
-                                    Register
-                                </Link>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+                    <TextField
+                        label="Password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Your password"
+                        fullWidth
+                        name="loginPassword"
+                        value={loginPassword}
+                        onChange={onLoginInputChange}
+                        variant="outlined"
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                            }
+                        }}
+                    />
 
-                    
-                </Grid>
+                    {errorMessage && (
+                        <Alert severity="error" sx={{ borderRadius: 2 }}>
+                            {errorMessage}
+                        </Alert>
+                    )}
+
+                    <Button
+                        variant="contained"
+                        fullWidth
+                        type="submit"
+                        size="large"
+                        sx={{
+                            mt: 1,
+                            py: 1.5,
+                            textTransform: 'none',
+                            fontSize: '1.1rem',
+                            fontWeight: 600,
+                            borderRadius: 2,
+                        }}
+                    >
+                        Sign In
+                    </Button>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                        <Link
+                            component={RouterLink}
+                            to="/auth/forgot-password"
+                            sx={{
+                                color: 'text.secondary',
+                                textDecoration: 'none',
+                                '&:hover': {
+                                    textDecoration: 'underline',
+                                },
+                            }}
+                        >
+                            Forgot password?
+                        </Link>
+
+                        <Link
+                            component={RouterLink}
+                            to="/auth/signup"
+                            sx={{
+                                color: 'primary.main',
+                                textDecoration: 'none',
+                                fontWeight: 500,
+                                '&:hover': {
+                                    textDecoration: 'underline',
+                                },
+                            }}
+                        >
+                            Create an account
+                        </Link>
+                    </Box>
+                </Box>
             </form>
-
         </AuthLayout>
-    )
-}
+    );
+};

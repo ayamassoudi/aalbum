@@ -1,10 +1,9 @@
 import { Navbar, Dropdown, Avatar } from "flowbite-react/lib/cjs/index.js";
 import { useAuthStore } from "../../hooks/useAuthStore";
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import logo from '../../favicon.svg' // relative path to image 
+import logo from '../../favicon.svg'
 
 export const NavbarX = () => {
-
   const {startLogout, user} = useAuthStore();
 
   let profileDropdown = (
@@ -34,6 +33,16 @@ export const NavbarX = () => {
               Settings
           </NavLink>
         </Dropdown.Item>
+        {user.isAdmin && (
+          <Dropdown.Item>
+            <NavLink 
+                className="py-4 px-4"
+                to="/admin"
+            >
+                Admin Dashboard
+            </NavLink>
+          </Dropdown.Item>
+        )}
         <Dropdown.Divider />
         <Dropdown.Item>
           <a className="py-4 px-4" onClick={startLogout}>Log out</a>
@@ -58,7 +67,6 @@ export const NavbarX = () => {
         </Navbar.Brand>
         {profileDropdown}
         <Navbar.Collapse>
-
           <NavLink 
               className={({isActive}) => `${isActive ? 'text-violet-900 font-bold' : ''}`} 
               to="/albums"
@@ -66,7 +74,7 @@ export const NavbarX = () => {
               Albums
           </NavLink>
           <NavLink 
-              className={({isActive}) => ` ${isActive ? 'text-violet-900 font-bold' : ''}`} 
+              className={({isActive}) => `${isActive ? 'text-violet-900 font-bold' : ''}`}
               to="/stats"
           >
               Stats

@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.js';
 import Modal from 'react-modal';
 import { useUiStore } from '../../hooks/useUiStore';
 import { usePhotoStore } from '../../hooks/usePhotoStore';
-import { Button, Label, TextInput, Textarea, Spinner, FileInput } from "flowbite-react/lib/cjs/index.js";
-import { useDispatch } from 'react-redux';
-import { savingNewPhoto } from '../../store/app/photoSlice';
+import { Button, Spinner } from "flowbite-react/lib/cjs/index.js";
+import { Box, Typography, IconButton, TextField } from '@mui/material';
+import { Close, Image } from '@mui/icons-material';
 
 const customStyles = {
+  overlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    zIndex: 1000,
+  },
   content: {
-    // top: '50%',
-    // left: '50%',
-    // right: 'auto',
-    // bottom: 'auto',
-    // marginRight: '-50%',
-    // transform: 'translate(-50%, -50%)',
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    transform: 'translate(-50%, -50%)',
+    maxWidth: '500px',
+    width: '90%',
+    padding: 0,
+    border: 'none',
+    borderRadius: '0.75rem',
+    backgroundColor: '#fff',
   },
 };
 
@@ -25,198 +33,191 @@ const formFields = {
   name: '',
   description: '',
   url: ''
-}
+};
 
 export function PhotoModal() {
-
-  const dispatch = useDispatch();
-
-  const {isModalOpen, closeModal} = useUiStore();
-
-  const {activePhoto, startSavingPhoto, startUploadingFile, isSaving} = usePhotoStore();
-
+  const { isModalOpen, closeModal } = useUiStore();
+  const { activePhoto, startSavingPhoto, startUploadingFile, isSaving } = usePhotoStore();
   const [formSubmitted, setFormSubmitted] = useState(false);
-
-  const [fileSelected, setfileSelected] = useState([]);
-
+  const [fileSelected, setFileSelected] = useState(null);
   const [formValues, setFormValues] = useState(formFields);
+  const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
-    if (activePhoto !== null){
-      if(!activePhoto.description){
-        setFormValues({...activePhoto, description: ''});
-      }else{
-        setFormValues({...activePhoto});
-      }
-      
+    if (activePhoto !== null) {
+      setFormValues({
+        ...activePhoto,
+        description: activePhoto.description || ''
+      });
+      setPreviewUrl(activePhoto.url || '');
+    } else {
+      setFormValues(formFields);
+      setPreviewUrl('');
+      setFileSelected(null);
+    }
+  }, [activePhoto]);
+
+  const onInputChange = ({ target }) => {
+    setFormValues({
+      ...formValues,
+      [target.name]: target.value
+    });
+  };
+
+  const onFileInputChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      Swal.fire('Invalid file', 'Please select an image file', 'error');
+      return;
     }
 
-  }, [activePhoto])
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire('File too large', 'Please select an image smaller than 5MB', 'error');
+      return;
+    }
 
-  const onInputChange = ({target}) => {
-      setFormValues({
-          ...formValues,
-          [target.name]: target.value
-      })
-  }
+    setFileSelected(file);
 
-  const onFileInputChange = ({target}) => {
-      if (target.files === 0) return;
-
-      setfileSelected(target.files)
-  }
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setFormSubmitted(true);
 
-    if ( formValues.name.length <= 0) {
-        Swal.fire('Name is required', 'Enter a name for the photo', 'error');
-        return;
+    if (formValues.name.length <= 0) {
+      Swal.fire('Required Field', 'Please enter a name for the photo', 'warning');
+      return;
     }
 
-    formValues.url = await startUploadingFile(fileSelected);
-
-    await startSavingPhoto(formValues);
-    closeModal();
-    setFormSubmitted(false);
-  }
-
-  const onSubmitUpdate = async (e) => {
-    e.preventDefault();
-    setFormSubmitted(true);
-
-    if ( formValues.name.length <= 0) {
-        Swal.fire('Name is required', 'Enter a name for the photo', 'error');
-        return;
+    if (!fileSelected && !activePhoto) {
+      Swal.fire('Required Field', 'Please select a photo to upload', 'warning');
+      return;
     }
 
-    await startSavingPhoto(formValues);
-    closeModal();
-    setFormSubmitted(false);
-  }
+    try {
+      if (fileSelected) {
+        const fileUrl = await startUploadingFile([fileSelected]);
+        formValues.url = fileUrl;
+      }
+
+      await startSavingPhoto(formValues);
+      closeModal();
+      setFormSubmitted(false);
+      setFileSelected(null);
+      setPreviewUrl('');
+    } catch (error) {
+      Swal.fire('Error', 'Failed to upload photo. Please try again.', 'error');
+    }
+  };
 
   return (
     <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        style={customStyles}
-        className={"modal " + (activePhoto?.name ? '' : 'w-11/12 sm:w-11/12 md:w-3/4 lg:w-4/6 xl:w-1/2 2xl:w-1/3')}
-        overlayClassName="modal-fondo"
-        closeTimeoutMS={200}
+      isOpen={isModalOpen}
+      onRequestClose={closeModal}
+      style={customStyles}
+      closeTimeoutMS={200}
     >
-      {activePhoto?.name ? (
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Image sx={{ color: 'primary.main', fontSize: 28 }} />
+            <Typography variant="h5" component="h2" fontWeight="600">
+              {activePhoto?.name ? 'Edit Photo' : 'Upload Photo'}
+            </Typography>
+          </Box>
+          <IconButton onClick={closeModal} size="small" sx={{ color: 'text.secondary' }}>
+            <Close />
+          </IconButton>
+        </Box>
 
-        <>
-          <form className="flex flex-col gap-4 w-full mt-1" onSubmit={onSubmitUpdate}>
-            <div className="grid grid-cols-3 gap-2 w-full">
-              <div className="col-span-2">
-              <TextInput
-                sizing="md"
-                type="text"
-                placeholder="Photo name"
-                name="name"
-                value={formValues.name}
-                onChange={onInputChange}
-                
-              />
-              </div>
-              <Button type="submit">
-                Save
+        <form onSubmit={onSubmit} className="animate__animated animate__fadeIn animate__faster">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <TextField
+              label="Photo Name"
+              placeholder="Enter photo name"
+              fullWidth
+              name="name"
+              value={formValues.name}
+              onChange={onInputChange}
+              error={formSubmitted && formValues.name.length <= 0}
+              helperText={formSubmitted && formValues.name.length <= 0 ? "Photo name is required" : ""}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+
+            <TextField
+              label="Description"
+              placeholder="Enter photo description (optional)"
+              multiline
+              rows={3}
+              fullWidth
+              name="description"
+              value={formValues.description}
+              onChange={onInputChange}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+
+            {!activePhoto && (
+              <Box>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={onFileInputChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  Accepted formats: PNG, JPEG (max. 5MB)
+                </Typography>
+              </Box>
+            )}
+
+            {previewUrl && (
+              <Box sx={{ mt: 2, mb: 1 }}>
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-48 object-contain rounded-lg border"
+                />
+              </Box>
+            )}
+
+            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+              <Button
+                type="button"
+                color="gray"
+                onClick={closeModal}
+                className="flex-1"
+              >
+                Cancel
               </Button>
-            </div>
-            <div>
-              <Textarea
-                sizing="md"
-                type="text"
-                placeholder="Photo description"
-                rows={2}
-                name="description"
-                value={formValues.description}
-                onChange={onInputChange}
-                style={{resize: 'none'}}
-              />
-            </div>
-            
-          </form>
-        <hr />
-        <img
-            alt="photo"
-            className="modal_img block object-cover object-center rounded-lg mt-3"
-            src={activePhoto.url}
-        ></img>
-        </>
-
-      ) : (
-
-        <>
-          <h1 className='text-2xl mt-1 mb-2'>Upload a photo</h1>
-          <hr />
-
-          <form className="flex flex-col gap-4 w-full mt-3" onSubmit={onSubmit}>
-            <div>
-              <div className="mb-2 block w-full">
-                <Label
-                  htmlFor="name"
-                  value="Name"
-                />
-              </div>
-              <TextInput
-                sizing="lg"
-                id="name"
-                type="text"
-                placeholder="Photo name"
-                name="name"
-                value={formValues.name}
-                onChange={onInputChange}
-              />
-            </div>
-            <div>
-              <div className="mb-2 block">
-                <Label
-                  htmlFor="description"
-                  value="Description"
-                />
-              </div>
-              <Textarea
-                sizing="lg"
-                id="description"
-                type="text"
-                placeholder="Photo description"
-                rows={5}
-                name="description"
-                value={formValues.description}
-                onChange={onInputChange}
-              />
-            </div>
-            <div id="fileUpload">
-              <div className="mb-2 block">
-                <Label
-                  htmlFor="file"
-                  value="Select photo"
-                />
-              </div>
-              <FileInput
-                id="file"
-                accept="image/png, image/jpeg"
-                required={true}
-                onChange={onFileInputChange}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="submit" disabled={isSaving}>
-                Save Photo
+              <Button
+                type="submit"
+                gradientMonochrome="purple"
+                className="flex-1"
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" />
+                    <span>Uploading...</span>
+                  </div>
+                ) : activePhoto ? 'Save Changes' : 'Upload Photo'}
               </Button>
-              { isSaving && (<Spinner aria-label="Default status example" size="xl" />)}
-              
-            </div>
-            
-          </form>
-        </>
-
-      )
-      }
-        
+            </Box>
+          </Box>
+        </form>
+      </Box>
     </Modal>
   );
 }

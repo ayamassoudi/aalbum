@@ -1,254 +1,332 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePhotoStore } from "../../hooks/usePhotoStore";
 import { useUiStore } from "../../hooks/useUiStore";
-import { useAuthStore } from "../../hooks/useAuthStore";
-import { useParams, useLocation } from "react-router-dom";
-import queryString from 'query-string';
+import { useLocation } from "react-router-dom";
 import { PhotoModal } from "../components/PhotoModal";
 import { SearchBar } from "../components/SearchBar";
-import { Button, Spinner } from "flowbite-react/lib/cjs/index.js";
-import { confirmAlert } from 'react-confirm-alert'; // Import
-import 'react-confirm-alert/src/react-confirm-alert.css'; // Import css
+import { Button, Card, Spinner } from "flowbite-react/lib/cjs/index.js";
+import { Box, Typography } from "@mui/material";
+import { Add, Delete, Image, Upload } from "@mui/icons-material";
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 
 export const PhotosPage = () => {
-
-    const listInnerRef = useRef();
-
-    const [showNoResults, setNoResults] = useState(false);
-    const {openModal} = useUiStore();
-    const {user} = useAuthStore();
-    const {photos, isSaving, isDeleting, setActivePhoto, startLoadingPhotos, startDeletingPhoto, startDeletingAllPhotosOfAlbum, startSavingPhotos} = usePhotoStore();
-
-    const fileInputRef = useRef();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const id = location.pathname.split("/")[2];
+    const AlbumTitle = queryParams.get("AlbumTitle");
 
     const [min, setMin] = useState(0);
     const [max, setMax] = useState(20);
-    const [showMore, setShowMore] = useState(true);
+    const [showMore, setShowMore] = useState(false);
+    const [showNoResults, setNoResults] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const fileInputRef = useRef();
+    const listInnerRef = useRef();
 
-    const location = useLocation();
-    const { AlbumTitle } = queryString.parse(location.search);
-    const {id} = useParams();
+    const { photos, setActivePhoto, startSavingPhoto, startSavingPhotos, startDeletingPhoto, startDeletingAllPhotosOfAlbum, startLoadingPhotos } = usePhotoStore();
+    const { openModal } = useUiStore();
 
     const onViewPhoto = (photo) => {
         setActivePhoto(photo);
         openModal();
-    }
+    };
 
     const onUploadPhoto = () => {
-      setActivePhoto({
-          name: '',
-          description: '',
-          url: ''
-      })
-      openModal();
+        setActivePhoto(null);
+        openModal();
+    };
 
-    }
-
-    const onFileInputChange = ({target}) => { //Upload multiple photos
+    const onFileInputChange = async ({ target }) => {
         if (target.files === 0) return;
+        setIsSaving(true);
+        await startSavingPhotos(target.files);
+        setIsSaving(false);
+        target.value = '';
+    };
 
-        startSavingPhotos(target.files);
-    }
+    const onConfirmDeletePhoto = (photo) => {
+        confirmAlert({
+            title: 'Delete Photo',
+            message: 'Are you sure you want to delete this photo?',
+            buttons: [
+                {
+                    label: 'Delete',
+                    onClick: () => startDeletingPhoto(photo),
+                    className: 'bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg mr-2'
+                },
+                {
+                    label: 'Cancel',
+                    className: 'bg-gray-200 text-gray-900 hover:bg-gray-300 px-4 py-2 rounded-lg'
+                }
+            ],
+            closeOnEscape: true,
+            closeOnClickOutside: true,
+            customUI: ({ onClose, title, message, buttons }) => (
+                <div className="bg-white rounded-lg p-6 max-w-sm mx-auto shadow-xl">
+                    <h1 className="text-xl font-semibold mb-2">{title}</h1>
+                    <p className="text-gray-600 mb-6">{message}</p>
+                    <div className="flex justify-end gap-2">
+                        {buttons.map((button, i) => (
+                            <button
+                                key={i}
+                                onClick={() => {
+                                    if (button.onClick) button.onClick();
+                                    onClose();
+                                }}
+                                className={button.className}
+                            >
+                                {button.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )
+        });
+    };
 
-    const onDeletePhoto = (photo) => {
-        setActivePhoto(photo);
-        startDeletingPhoto(photo);
-    }
+    const onConfirmDeletePhotos = () => {
+        confirmAlert({
+            title: 'Delete All Photos',
+            message: 'Are you sure you want to delete all photos from this album? This action cannot be undone.',
+            buttons: [
+                {
+                    label: 'Delete All',
+                    onClick: () => {
+                        setIsDeleting(true);
+                        onDeleteAllPhotos();
+                        setIsDeleting(false);
+                    },
+                    className: 'bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg mr-2'
+                },
+                {
+                    label: 'Cancel',
+                    className: 'bg-gray-200 text-gray-900 hover:bg-gray-300 px-4 py-2 rounded-lg'
+                }
+            ],
+            closeOnEscape: true,
+            closeOnClickOutside: true,
+            customUI: ({ onClose, title, message, buttons }) => (
+                <div className="bg-white rounded-lg p-6 max-w-sm mx-auto shadow-xl">
+                    <h1 className="text-xl font-semibold mb-2">{title}</h1>
+                    <p className="text-gray-600 mb-6">{message}</p>
+                    <div className="flex justify-end gap-2">
+                        {buttons.map((button, i) => (
+                            <button
+                                key={i}
+                                onClick={() => {
+                                    if (button.onClick) button.onClick();
+                                    onClose();
+                                }}
+                                className={button.className}
+                            >
+                                {button.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )
+        });
+    };
 
     const onDeleteAllPhotos = () => {
         startDeletingAllPhotosOfAlbum();
-    }
+    };
 
     useEffect(() => {
         startLoadingPhotos(id);
-    }, [])
+    }, []);
 
     useEffect(() => {
-        if(photos.length<20){
-          setShowMore(false);
-        }else{
-          setShowMore(true);
+        if (photos.length < 20) {
+            setShowMore(false);
+        } else {
+            setShowMore(true);
         }
-    }, [photos])
+    }, [photos]);
 
     const loadMore = () => {
         if (photos[0]) {
-          if (max + 20 >= photos.length) {
-            setShowMore(false);
-          }
-          if (max <= photos.length){
-            setMax(max + 20);
-          }
+            if (max + 20 >= photos.length) {
+                setShowMore(false);
+            }
+            if (max <= photos.length) {
+                setMax(max + 20);
+            }
         }
     };
 
     const onScroll = () => {
-      //console.log("reached bottom");
-      if (listInnerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = listInnerRef.current;
-        if (scrollTop + clientHeight === scrollHeight) {
-          //console.log("reached bottom");
-          loadMore();
+        if (listInnerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = listInnerRef.current;
+            if (scrollTop + clientHeight === scrollHeight) {
+                loadMore();
+            }
         }
-      }
     };
 
-    const onConfirmDeletePhoto = (photo) => {
-      
-      confirmAlert({
-        title: 'Are you sure you want to delete this photo?',
-        message: '',
-        buttons: [
-          {
-            label: 'Yes',
-            onClick: () => onDeletePhoto(photo)
-          },
-          {
-            label: 'No',
-          }
-        ]
-      });
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" component="h1" fontWeight="bold" color="primary" gutterBottom>
+                    {AlbumTitle}
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    View and manage your photos
+                </Typography>
+            </Box>
 
-    }
+            <Card className="mb-6">
+                <div className="p-4">
+                    <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+                        <Button
+                            gradientMonochrome="purple"
+                            onClick={() => onUploadPhoto()}
+                            className="flex items-center gap-2"
+                        >
+                            <Add className="w-5 h-5" />
+                            Upload Photo
+                        </Button>
+                        <Button
+                            gradientDuoTone="purpleToBlue"
+                            onClick={() => fileInputRef.current.click()}
+                            disabled={isSaving}
+                            className="flex items-center gap-2"
+                        >
+                            <Upload className="w-5 h-5" />
+                            Upload Multiple
+                        </Button>
+                        {photos.length > 0 && (
+                            <Button
+                                gradientDuoTone="pinkToOrange"
+                                onClick={() => onConfirmDeletePhotos()}
+                                disabled={isDeleting}
+                                className="flex items-center gap-2"
+                            >
+                                <Delete className="w-5 h-5" />
+                                Delete All
+                            </Button>
+                        )}
+                    </Box>
 
-    const onConfirmDeletePhotos = () => {
-      
-      confirmAlert({
-        title: 'Are you sure you want to delete all photos in this album?',
-        message: '',
-        buttons: [
-          {
-            label: 'Yes',
-            onClick: () => onDeleteAllPhotos()
-          },
-          {
-            label: 'No',
-          }
-        ]
-      });
+                    {(isSaving || isDeleting) && (
+                        <div className="flex justify-center my-4">
+                            <Spinner size="xl" />
+                        </div>
+                    )}
 
-    }
-    
-
-  return (
-    <div className="App">
-      
-
-      {photos[0] ? (
-        <section className="overflow-hidden text-gray-700 border-2 rounded-lg mt-4">
-          <h1 className="px-0 py-2.5 text-3xl text-center font-bold text-slate-900">
-            {AlbumTitle}
-          </h1>
-
-          <div className="grid grid-cols-3 justify-items-center gap-1">
-            <Button color="purple" onClick={() => onUploadPhoto()}>
-              Upload a photo
-            </Button>
-            <Button color="warning" onClick={() => fileInputRef.current.click()} disabled={isSaving}>
-              Upload multiple photos
-            </Button>
-            <Button color="failure" onClick={() => onConfirmDeletePhotos()} disabled={isDeleting}>
-              Delete all photos
-            </Button>
-            </div>
-            <div className="grid grid-cols-1 justify-items-center gap-0 mt-4">
-            { (isDeleting || isSaving) && (<Spinner aria-label="Default status example" size="xl" />)}
-            </div>
-          
-        <SearchBar
-            id={2}
-            setNoResults={setNoResults}
-          />
-
-        {showNoResults ? (
-          <p className="px-6 py-2.5 bg-blue-600 text-white font-medium text-x leading-tight ">
-            No results
-          </p>
-        ) : null}
-
-          <div className="container px-5 py-0 mx-auto lg:pt-3 lg:px-32"
-            id="scrollContent"
-            onScroll={onScroll}
-            ref={listInnerRef}
-            style={{ height: "80vh", overflowY: "scroll" }}>
-            <div className="flex flex-wrap -m-1 md:-m-2">
-              {photos.slice(min, max).map((photo) => (
-                <div key={photo.id} id="photo_container" className="flex flex-wrap w-1/5 items-stretch">
-
-                <div className="w-full m-2 md:m-2 bg-blue-600 grid grid-cols-1 content-end">
-
-                 <p id="photo_title" className="px-6 py-2.5 bg-blue-600 text-white font-medium text-x leading-tight w-full h-auto m-0 text-center">
-                    {photo.name}
-                  </p>
-                  
-                  <div className="w-full h-fit m-0">
-                    <img
-                      className="thumbnail block object-cover object-center w-full h-full "
-                      src={photo.thumbnail}
-                      width="100%"
-                      height="100%"
-                    ></img>
-                  </div>
-              
-                  <div className="grid grid-cols-2 gap-0">
-                    <button
-                      type="button"
-                      onClick={() => onViewPhoto(photo)}
-                      className="w-full h-fit m-0 inline-block px-0 py-2.5 bg-emerald-600 text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-emerald-700 hover:shadow-lg focus:bg-emerald-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-emerald-800 active:shadow-lg transition duration-150 ease-in-out"
-                    >
-                      View
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onConfirmDeletePhoto(photo)}
-                
-                      className="w-full h-fit m-0 inline-block px-0 py-2.5 bg-red-600 text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-red-700 hover:shadow-lg focus:bg-red-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-red-800 active:shadow-lg transition duration-150 ease-in-out"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
+                    <SearchBar
+                        id={2}
+                        setNoResults={setNoResults}
+                    />
                 </div>
-              </div>
-              ))}
-            </div>
+            </Card>
 
-            {showMore ? (
-              <button
-                type="button"
-                onClick={() => loadMore()}
-                className="w-full mt-4 inline-block px-6 py-2.5 bg-blue-600 text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
-              >
-                Load more
-              </button>
-            ) : null}
-          </div>
-        </section>
-      ) : (
-        <>
-          <h1 className="px-0 py-2.5 text-3xl text-center font-bold text-slate-900">
-            {AlbumTitle}
-          </h1>
+            {showNoResults ? (
+                <Card className="text-center p-8 bg-gray-50">
+                    <Image className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No photos found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Try adjusting your search terms
+                    </Typography>
+                </Card>
+            ) : photos.length > 0 ? (
+                <div
+                    id="scrollContent"
+                    onScroll={onScroll}
+                    ref={listInnerRef}
+                    className="h-[80vh] overflow-y-auto"
+                >
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {photos.slice(min, max).map((photo) => (
+                            <Card key={photo.id} className="overflow-hidden">
+                                <div className="relative aspect-square">
+                                    <img
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        src={photo.thumbnail}
+                                        alt={photo.name}
+                                    />
+                                </div>
+                                <div className="p-3">
+                                    <Typography variant="subtitle2" className="line-clamp-1 mb-2">
+                                        {photo.name}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                        <Button
+                                            size="sm"
+                                            gradientMonochrome="info"
+                                            onClick={() => onViewPhoto(photo)}
+                                            className="flex-1"
+                                        >
+                                            View
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            gradientMonochrome="failure"
+                                            onClick={() => onConfirmDeletePhoto(photo)}
+                                            className="flex-1"
+                                        >
+                                            Delete
+                                        </Button>
+                                    </Box>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
 
-          <div className="grid grid-cols-2 justify-items-center gap-1">
-            <Button color="purple" onClick={() => onUploadPhoto()}>
-              Upload a photo
-            </Button>
-            <Button color="warning" onClick={() => fileInputRef.current.click()} disabled={isSaving}>
-              Upload multiple photos
-            </Button>
-            </div>
-            <div className="grid grid-cols-1 justify-items-center gap-0 mt-4">
-            { isSaving && (<Spinner aria-label="Default status example" size="xl" />)}
-            </div>
+                    {showMore && (
+                        <Button
+                            gradientMonochrome="purple"
+                            className="w-full mt-4"
+                            onClick={() => loadMore()}
+                        >
+                            Load More
+                        </Button>
+                    )}
+                </div>
+            ) : (
+                <Card className="text-center p-8 bg-gray-50">
+                    <Image className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No photos yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                        Upload your first photo to get started
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                        <Button
+                            gradientMonochrome="purple"
+                            onClick={() => onUploadPhoto()}
+                            className="flex items-center gap-2"
+                        >
+                            <Add className="w-5 h-5" />
+                            Upload Photo
+                        </Button>
+                        <Button
+                            gradientDuoTone="purpleToBlue"
+                            onClick={() => fileInputRef.current.click()}
+                            disabled={isSaving}
+                            className="flex items-center gap-2"
+                        >
+                            <Upload className="w-5 h-5" />
+                            Upload Multiple
+                        </Button>
+                    </Box>
+                </Card>
+            )}
 
-          <p className="mt-4">No photos yet in this album :|</p>
-        </>
-        
-      )}
-      <PhotoModal />
-      <input type="file" multiple accept="image/png, image/jpeg" onChange={onFileInputChange} style={{display: 'none'}} ref={fileInputRef}/>
-    </div>
-  )
-}
+            <PhotoModal />
+            <input
+                type="file"
+                multiple
+                accept="image/png, image/jpeg"
+                onChange={onFileInputChange}
+                style={{ display: 'none' }}
+                ref={fileInputRef}
+            />
+        </div>
+    );
+};
